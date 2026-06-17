@@ -24,6 +24,8 @@ from urllib.parse import urlparse, urlunparse
 import feedparser
 from dateutil import parser as date_parser
 
+from translator import translation_service
+
 logger = logging.getLogger(__name__)
 
 # 取得対象のRSSフィード一覧。(表示用ソース名, フィードURL)
@@ -60,6 +62,8 @@ class Article:
     summary: str
     source: str
     published: datetime | None = None
+    # 日本語以外の記事を翻訳した場合に True。テンプレートでバッジ表示に使う。
+    translated: bool = False
 
     def __post_init__(self) -> None:
         # http(s) 以外のスキーム（javascript:, data: 等）は href に出さない。
@@ -231,10 +235,12 @@ class NewsService:
         feeds: list[tuple[str, str]] | None = None,
         ttl_seconds: int = CACHE_TTL_SECONDS,
         max_articles: int = MAX_ARTICLES,
+        translator=None,
     ) -> None:
         self._feeds = feeds if feeds is not None else RSS_FEEDS
         self._ttl = ttl_seconds
         self._max_articles = max_articles
+        self._translator = translation_service if translator is None else translator
         self._lock = threading.Lock()
         self._cache: _CacheEntry | None = None
 
@@ -274,7 +280,25 @@ class NewsService:
         )
 
         deduped = _deduplicate(collected)
-        return deduped[: self._max_articles]
+        limited = deduped[: self._max_articles]
+        return self._translate(limited)
+
+    def _translate(self, articles: list[Article]) -> list[Article]:
+        """日本語以外の記事を日本語へ翻訳する（表示対象の記事のみ）。
+
+        翻訳サービスが無効・失敗した場合は原文のまま返り、``translated`` は
+        False のままになる。翻訳によりタイトルまたは要約が変化した記事は
+        ``translated=True`` を立てる。
+        """
+        if self._translator is None:
+            return articles
+        for article in articles:
+            title_ja, summary_ja = self._translator.translate(article.title, article.summary)
+            if title_ja != article.title or summary_ja != article.summary:
+                article.title = title_ja
+                article.summary = summary_ja
+                article.translated = True
+        return articles
 
 
 # アプリ全体で共有するデフォルトのサービスインスタンス

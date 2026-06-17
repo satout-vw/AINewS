@@ -55,9 +55,17 @@
       {% for article in articles %}
       <article class="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 shadow-lg shadow-black/20 ring-1 ring-white/5 transition duration-200 hover:-translate-y-1 hover:border-indigo-400/40 hover:shadow-indigo-500/10">
         <div class="flex items-center justify-between gap-2 border-b border-white/5 px-5 py-3">
-          <span class="inline-flex items-center rounded-full bg-indigo-500/15 px-2.5 py-1 text-xs font-semibold text-indigo-300">
-            {{ article.source }}
-          </span>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center rounded-full bg-indigo-500/15 px-2.5 py-1 text-xs font-semibold text-indigo-300">
+              {{ article.source }}
+            </span>
+            {% if article.translated %}
+            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-1 text-[11px] font-semibold text-emerald-300"
+                  title="日本語以外の記事を自動翻訳しています">
+              🌐 翻訳
+            </span>
+            {% endif %}
+          </div>
           <time class="text-xs text-slate-400">{{ article.published_display }}</time>
         </div>
         <div class="flex flex-1 flex-col px-5 py-4">
