@@ -1,0 +1,75 @@
+# AI News Digest
+
+複数のメディアのRSSフィードからAI関連ニュースを収集し、重複を排除した
+**最新30件**をモダンなカードレイアウトで一覧表示するWebアプリです。
+
+## 特長
+
+- 🗞 **複数ソースを集約** — TechCrunch AI / MIT Technology Review / The Verge AI / Wired AI
+- 🧹 **重複排除** — URLの正規化に加え、タイトルの類似度（既定 0.85）で重複記事を除外
+- ✂️ **自動要約** — RSSの `description` / `summary` を使用し、無ければ本文冒頭を切り出して整形
+- 🔗 **情報元リンク** — 各記事にソース名・公開日時・クリッカブルな元記事URLを表示
+- ⏱ **キャッシュ** — RSSフェッチ結果を15分キャッシュし、過剰なリクエストを抑制
+- 🎨 **モダンUI** — Tailwind CSS（CDN）によるダークテーマのレスポンシブなカードデザイン
+
+## 必要環境
+
+- Python 3.9 以上
+
+## セットアップと起動
+
+```bash
+# 1. 依存ライブラリのインストール
+pip install -r requirements.txt
+
+# 2. アプリの起動
+python app.py
+```
+
+起動後、ブラウザで <http://localhost:5000> を開いてください。
+
+### ポートの変更
+
+```bash
+PORT=8080 python app.py
+```
+
+### デバッグモード
+
+```bash
+FLASK_DEBUG=1 python app.py
+```
+
+## 使い方
+
+- トップページ `/` で最新記事の一覧を表示します。
+- ヘッダーの **「↻ 今すぐ更新」** ボタン（`/?refresh=1`）でキャッシュを無視して再取得します。
+- `/healthz` はヘルスチェック用エンドポイントです。
+
+## 設定
+
+主な設定値は `news.py` の冒頭で変更できます。
+
+| 定数 | 既定値 | 説明 |
+|------|--------|------|
+| `RSS_FEEDS` | 4ソース | 取得対象のRSSフィード一覧 `(ソース名, URL)` |
+| `MAX_ARTICLES` | `30` | 一覧に表示する最大件数 |
+| `CACHE_TTL_SECONDS` | `900`（15分） | RSSフェッチ結果のキャッシュ有効期間 |
+| `TITLE_SIMILARITY_THRESHOLD` | `0.85` | この値以上に類似したタイトルを重複とみなす |
+| `SUMMARY_MAX_CHARS` | `280` | 要約の最大文字数 |
+
+## 構成
+
+```
+.
+├── app.py             # Flaskアプリ本体（ルーティング）
+├── news.py            # RSS取得・整形・重複排除ロジック + TTLキャッシュ
+├── templates/
+│   └── index.html     # 記事一覧ページ（Tailwind CSS）
+├── requirements.txt
+└── README.md
+```
+
+## ライセンス
+
+社内利用を想定したサンプル実装です。
