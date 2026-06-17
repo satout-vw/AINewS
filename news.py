@@ -1,7 +1,8 @@
-"""AIニュース記事の収集・整形・重複排除ロジック。
+"""日本語AIニュース記事の収集・整形・重複排除ロジック。
 
-複数のRSSフィードからAI関連記事を取得し、URL/タイトルの類似度で
-重複を排除した上で、公開日時の新しい順に整列して返す。
+日本語メディアのRSSフィードからAI関連記事を取得し、日本語以外の記事を
+除外したうえで、URL/タイトルの類似度で重複を排除し、公開日時の新しい順に
+整列して返す。
 
 外部ネットワークアクセスを伴うフェッチ結果は ``TTLCache`` で一定時間
 キャッシュし、過剰なリクエストを防ぐ。
@@ -27,11 +28,13 @@ from dateutil import parser as date_parser
 logger = logging.getLogger(__name__)
 
 # 取得対象のRSSフィード一覧。(表示用ソース名, フィードURL)
+# 日本語のAI/テック系メディア。ITmedia AI+ はAI専門、その他は総合テック
+# フィードのため、日本語以外の記事は _is_japanese フィルタで除外される。
 RSS_FEEDS: list[tuple[str, str]] = [
-    ("TechCrunch AI", "https://techcrunch.com/category/artificial-intelligence/feed/"),
-    ("MIT Technology Review", "https://www.technologyreview.com/topic/artificial-intelligence/feed/"),
-    ("The Verge AI", "https://www.theverge.com/rss/ai/index.xml"),
-    ("Wired AI", "https://www.wired.com/feed/tag/ai/latest/rss"),
+    ("ITmedia AI＋", "https://rss.itmedia.co.jp/rss/2.0/aiplus.xml"),
+    ("ZDNet Japan", "https://feeds.japan.zdnet.com/rss/zdnet/all.rdf"),
+    ("GIGAZINE", "https://gigazine.net/news/rss_2.0/"),
+    ("ASCII.jp", "https://ascii.jp/rss.xml"),
 ]
 
 # 表示件数とキャッシュTTL（秒）
@@ -49,6 +52,21 @@ ALLOWED_URL_SCHEMES = {"http", "https"}
 
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
+
+# ひらがな・カタカナ（半角カナ含む）。日本語記事の判定に用いる。
+_KANA_RE = re.compile(r"[぀-ヿｦ-ﾟ]")
+
+
+def _is_japanese(text: str) -> bool:
+    """テキストが日本語かどうかを判定する。
+
+    ひらがな・カタカナを1文字でも含めば日本語とみなす簡易判定。漢字のみの
+    タイトル（中国語等との区別が難しい）は対象外だが、日本語の見出しは通常
+    かなを含むため実用上は十分に機能する。外部ライブラリは使用しない。
+    """
+    if not text:
+        return False
+    return bool(_KANA_RE.search(text))
 
 
 @dataclass
@@ -266,6 +284,9 @@ class NewsService:
         collected: list[Article] = []
         for source, url in self._feeds:
             collected.extend(_fetch_feed(source, url))
+
+        # 総合テック系フィードが混ざるため、日本語タイトルの記事のみを残す。
+        collected = [a for a in collected if _is_japanese(a.title)]
 
         # 新しい順（公開日時不明は末尾）に整列
         collected.sort(
