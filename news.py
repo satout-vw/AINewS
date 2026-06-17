@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import calendar
 import html
 import logging
 import re
@@ -43,6 +44,9 @@ TITLE_SIMILARITY_THRESHOLD = 0.85
 # 要約の最大文字数
 SUMMARY_MAX_CHARS = 280
 
+# href に展開して安全なURLスキーム（javascript: 等のXSSを防ぐ）
+ALLOWED_URL_SCHEMES = {"http", "https"}
+
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
 
@@ -56,6 +60,15 @@ class Article:
     summary: str
     source: str
     published: datetime | None = None
+
+    def __post_init__(self) -> None:
+        # http(s) 以外のスキーム（javascript:, data: 等）は href に出さない。
+        try:
+            scheme = urlparse(self.url).scheme.lower()
+        except ValueError:
+            scheme = ""
+        if scheme not in ALLOWED_URL_SCHEMES:
+            self.url = "#"
 
     @property
     def published_display(self) -> str:
@@ -87,7 +100,9 @@ def _parse_published(entry) -> datetime | None:
     for key in ("published_parsed", "updated_parsed"):
         value = entry.get(key)
         if value:
-            return datetime.fromtimestamp(time.mktime(value), tz=timezone.utc)
+            # feedparser の *_parsed は UTC の struct_time。time.mktime はローカル
+            # タイム扱いになるため、UTC として解釈する calendar.timegm を使う。
+            return datetime.fromtimestamp(calendar.timegm(value), tz=timezone.utc)
     for key in ("published", "updated", "date"):
         raw = entry.get(key)
         if raw:
@@ -227,14 +242,16 @@ class NewsService:
         return time.monotonic()
 
     def get_articles(self, force_refresh: bool = False) -> list[Article]:
-        """整形済みの記事リストを返す。キャッシュが有効ならそれを使う。"""
+        """整形済みの記事リストを返す。キャッシュが有効ならそれを使う。
+
+        失効判定〜フェッチ〜キャッシュ更新までロックを保持することで、
+        複数スレッドが同時に失効を検出して重複フェッチする競合
+        (TOCTOU / thundering herd) を防ぐ。
+        """
         with self._lock:
             if not force_refresh and self._cache and self._cache.expires_at > self._now():
                 return self._cache.articles
-
-        articles = self._collect()
-
-        with self._lock:
+            articles = self._collect()
             self._cache = _CacheEntry(articles=articles, expires_at=self._now() + self._ttl)
             return articles
 
