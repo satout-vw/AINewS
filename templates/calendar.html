@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI News Digest — カレンダー {{ year }}年{{ month_name }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Hiragino Sans', 'Noto Sans JP', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+
+  <!-- ヘッダー -->
+  <header class="relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-indigo-600 via-purple-600 to-fuchsia-600">
+    <div class="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_20%_20%,white,transparent_40%),radial-gradient(circle_at_80%_0%,white,transparent_35%)]"></div>
+    <div class="relative mx-auto max-w-6xl px-6 py-10 sm:py-12">
+      <div class="flex items-center gap-3">
+        <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-2xl backdrop-blur">📅</span>
+        <div>
+          <h1 class="text-3xl font-extrabold tracking-tight sm:text-4xl">AI News Digest</h1>
+          <p class="mt-1 text-sm font-medium text-white/80">カレンダービュー — {{ year }}年{{ month_name }}</p>
+        </div>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+        <a href="/" class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 font-semibold backdrop-blur hover:bg-white/25">
+          📰 記事一覧
+        </a>
+        <a href="/?refresh=1" class="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-50">
+          ↻ 今すぐ更新
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- カレンダー本体 -->
+  <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+
+    <!-- 月ナビゲーション -->
+    <div class="mb-6 flex items-center justify-between">
+      <a href="/calendar/{{ prev_year }}/{{ prev_month }}"
+         class="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-slate-800 px-4 py-2 text-sm font-semibold transition hover:bg-slate-700">
+        ← 前月
+      </a>
+      <h2 class="text-xl font-bold">{{ year }}年{{ month_name }}</h2>
+      <a href="/calendar/{{ next_year }}/{{ next_month }}"
+         class="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-slate-800 px-4 py-2 text-sm font-semibold transition hover:bg-slate-700">
+        次月 →
+      </a>
+    </div>
+
+    <!--
+      カレンダーグリッド（修正内容）
+
+      【不具合1】毎月1日が常にSUN列に表示される
+        原因: オフセット（1日が何列目か）を計算せず、常に0列目（SUN列）から
+              日付を並べていたため。
+        修正: calendar.Calendar(firstweekday=6).monthdayscalendar() を使用。
+              firstweekday=6 で日曜始まりを指定し、各月の1日が正しい曜日列に
+              配置されるよう修正。月外の日は 0 として返るため、テンプレートで
+              0 を空白セルとして描画する。
+
+      【不具合2】曜日の途中がブランクになる
+        原因: 上記オフセット未計算と同一。オフセットなしで連続描画すると、
+              週の途中で月が終わった場合にその行が途切れたように見える。
+        修正: 不具合1の修正により、各行が正しい7セル（空白+日付）で構成され、
+              ブランクなく描画される。
+    -->
+    <div class="overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/60 shadow-lg">
+      <table class="w-full table-fixed border-collapse">
+        <thead>
+          <tr>
+            <th class="border-b border-white/10 py-3 text-center text-xs font-bold uppercase tracking-widest text-red-400">日</th>
+            <th class="border-b border-white/10 py-3 text-center text-xs font-bold uppercase tracking-widest text-slate-400">月</th>
+            <th class="border-b border-white/10 py-3 text-center text-xs font-bold uppercase tracking-widest text-slate-400">火</th>
+            <th class="border-b border-white/10 py-3 text-center text-xs font-bold uppercase tracking-widest text-slate-400">水</th>
+            <th class="border-b border-white/10 py-3 text-center text-xs font-bold uppercase tracking-widest text-slate-400">木</th>
+            <th class="border-b border-white/10 py-3 text-center text-xs font-bold uppercase tracking-widest text-slate-400">金</th>
+            <th class="border-b border-white/10 py-3 text-center text-xs font-bold uppercase tracking-widest text-blue-400">土</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for week in weeks %}
+          <tr class="border-b border-white/5 last:border-b-0">
+            {% for day in week %}
+            {% set col_idx = loop.index0 %}
+            {% set is_sunday = (col_idx == 0) %}
+            {% set is_saturday = (col_idx == 6) %}
+            {% set is_today = (day != 0 and day == today.day and year == today.year and month == today.month) %}
+            {% set day_articles = articles_by_day.get(day, []) %}
+            <td class="relative h-24 align-top border-r border-white/5 last:border-r-0 p-1.5
+              {{ 'bg-slate-950/40' if day == 0 else '' }}
+              {{ 'ring-1 ring-inset ring-indigo-400' if is_today else '' }}">
+              {% if day != 0 %}
+                <span class="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold
+                  {{ 'bg-indigo-500 text-white' if is_today else ('text-red-400' if is_sunday else ('text-blue-400' if is_saturday else 'text-slate-300')) }}">
+                  {{ day }}
+                </span>
+                {% if day_articles %}
+                <div class="mt-1 space-y-0.5">
+                  {% for article in day_articles[:3] %}
+                  <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer"
+                     class="block truncate rounded px-1 py-0.5 text-xs leading-tight text-indigo-300 hover:bg-indigo-500/20 hover:text-indigo-200"
+                     title="{{ article.title | e }}">
+                    {{ article.title }}
+                  </a>
+                  {% endfor %}
+                  {% set extra_count = (day_articles | length) - 3 %}
+                  {% if extra_count > 0 %}
+                  <span class="block px-1 text-xs text-slate-500">+{{ extra_count }} 件</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 凡例 -->
+    <div class="mt-4 flex flex-wrap gap-4 text-xs text-slate-500">
+      <span class="flex items-center gap-1.5">
+        <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 text-white text-xs font-bold">1</span>
+        今日
+      </span>
+      <span class="flex items-center gap-1.5 text-red-400">■ 日曜日</span>
+      <span class="flex items-center gap-1.5 text-blue-400">■ 土曜日</span>
+    </div>
+  </main>
+
+  <footer class="border-t border-white/10 py-8 text-center text-xs text-slate-500">
+    <p>AI News Digest · RSSフィードから自動収集 · 15分ごとにキャッシュ更新</p>
+  </footer>
+</body>
+</html>

@@ -35,6 +35,10 @@
         <span class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 font-semibold backdrop-blur">
           📰 {{ count }} 件の記事
         </span>
+        <a href="/calendar"
+           class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 font-semibold backdrop-blur hover:bg-white/25">
+          📅 カレンダー
+        </a>
         {% if cache_age_minutes is not none %}
         <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-white/80 backdrop-blur">
           ⏱ {{ cache_age_minutes }} 分前に更新
