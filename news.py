@@ -34,7 +34,6 @@ RSS_FEEDS: list[tuple[str, str]] = [
     ("ITmedia AI＋", "https://rss.itmedia.co.jp/rss/2.0/aiplus.xml"),
     ("ZDNet Japan", "https://feeds.japan.zdnet.com/rss/zdnet/all.rdf"),
     ("GIGAZINE", "https://gigazine.net/news/rss_2.0/"),
-    ("ASCII.jp", "https://ascii.jp/rss.xml"),
 ]
 
 # 表示件数とキャッシュTTL（秒）
