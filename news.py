@@ -96,6 +96,11 @@ class Article:
         return self.published.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
+def _contains_ai_keyword(article: Article) -> bool:
+    """タイトルまたは要約に「AI」が含まれるか判定する。"""
+    return "AI" in article.title or "AI" in article.summary
+
+
 def _strip_html(text: str) -> str:
     """HTMLタグを除去し、エンティティをデコードして空白を正規化する。"""
     if not text:
@@ -287,6 +292,9 @@ class NewsService:
 
         # 総合テック系フィードが混ざるため、日本語タイトルの記事のみを残す。
         collected = [a for a in collected if _is_japanese(a.title)]
+
+        # タイトルまたは要約に「AI」を含まない記事を除外する。
+        collected = [a for a in collected if _contains_ai_keyword(a)]
 
         # 新しい順（公開日時不明は末尾）に整列
         collected.sort(
