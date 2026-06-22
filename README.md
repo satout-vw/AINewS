@@ -20,23 +20,78 @@
 
 ## セットアップと起動
 
-```bash
-# 1. 依存ライブラリのインストール
-pip install -r requirements.txt
+### 1. 仮想環境の作成と有効化
 
-# 2. アプリの起動
+```bash
+# 仮想環境を作成（初回のみ）
+python -m venv .venv
+
+# 仮想環境を有効化
+# macOS / Linux
+source .venv/bin/activate
+
+# Windows（コマンドプロンプト）
+.venv\Scripts\activate.bat
+
+# Windows（PowerShell）
+.venv\Scripts\Activate.ps1
+```
+
+有効化すると、プロンプトの先頭に `(.venv)` と表示されます。
+
+### 2. 環境変数ファイルの準備
+
+`.env.example` をコピーして `.env` を作成します。
+
+```bash
+cp .env.example .env
+```
+
+必要に応じて `.env` を編集し、ポート番号やデバッグモードを設定してください。
+
+```
+# .env の設定例
+PORT=5000
+FLASK_DEBUG=0
+```
+
+> `.env` ファイルは `.gitignore` に含まれており、リポジトリにはコミットされません。
+
+### 3. 依存ライブラリのインストール
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. アプリの起動
+
+```bash
 python app.py
 ```
 
 起動後、ブラウザで <http://localhost:5000> を開いてください。
 
-### ポートの変更
+### 仮想環境の無効化
+
+作業が終わったら `deactivate` コマンドで仮想環境を無効化できます。
+
+```bash
+deactivate
+```
+
+---
+
+### ポートの変更（環境変数で上書き）
+
+`.env` の `PORT` を変更するか、コマンド実行時に直接指定することもできます。
 
 ```bash
 PORT=8080 python app.py
 ```
 
 ### デバッグモード
+
+`.env` で `FLASK_DEBUG=1` に設定するか、コマンド実行時に指定します。
 
 ```bash
 FLASK_DEBUG=1 python app.py
@@ -69,6 +124,8 @@ FLASK_DEBUG=1 python app.py
 ├── templates/
 │   └── index.html     # 記事一覧ページ（Tailwind CSS）
 ├── requirements.txt
+├── .env.example       # 環境変数の設定例（リポジトリ管理）
+├── .env               # 環境変数の実設定（.gitignore 対象、各自作成）
 └── README.md
 ```
 

@@ -9,7 +9,10 @@ from __future__ import annotations
 import logging
 import os
 
+from dotenv import load_dotenv
 from flask import Flask, render_template, request
+
+load_dotenv()
 
 from news import news_service
 
