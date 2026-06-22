@@ -34,7 +34,6 @@ RSS_FEEDS: list[tuple[str, str]] = [
     ("ITmedia AI＋", "https://rss.itmedia.co.jp/rss/2.0/aiplus.xml"),
     ("ZDNet Japan", "https://feeds.japan.zdnet.com/rss/zdnet/all.rdf"),
     ("GIGAZINE", "https://gigazine.net/news/rss_2.0/"),
-    ("ASCII.jp", "https://ascii.jp/rss.xml"),
 ]
 
 # 表示件数とキャッシュTTL（秒）
@@ -94,6 +93,11 @@ class Article:
         if not self.published:
             return "日時不明"
         return self.published.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+
+def _contains_ai_keyword(article: Article) -> bool:
+    """タイトルまたは要約に「AI」が含まれるか判定する。"""
+    return "AI" in article.title or "AI" in article.summary
 
 
 def _strip_html(text: str) -> str:
@@ -287,6 +291,9 @@ class NewsService:
 
         # 総合テック系フィードが混ざるため、日本語タイトルの記事のみを残す。
         collected = [a for a in collected if _is_japanese(a.title)]
+
+        # タイトルまたは要約に「AI」を含まない記事を除外する。
+        collected = [a for a in collected if _contains_ai_keyword(a)]
 
         # 新しい順（公開日時不明は末尾）に整列
         collected.sort(
